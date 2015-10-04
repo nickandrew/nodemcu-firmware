@@ -77,8 +77,7 @@ static uint8_t LastDeviceFlag[NUM_OW];
 
 void onewire_init(uint8_t pin)
 {
-	// pinMode(pin, INPUT);
-  platform_gpio_mode(pin, PLATFORM_GPIO_INPUT, PLATFORM_GPIO_PULLUP);
+	platform_gpio_mode(pin, PLATFORM_GPIO_INPUT, PLATFORM_GPIO_PULLUP);
 #if ONEWIRE_SEARCH
 	onewire_reset_search(pin);
 #endif
@@ -179,8 +178,7 @@ void onewire_write(uint8_t pin, uint8_t v, uint8_t power /* = 0 */) {
   }
   if ( !power) {
   	noInterrupts();
-  	DIRECT_MODE_INPUT(pin);
-  	DIRECT_WRITE_LOW(pin);
+	platform_gpio_mode(pin, PLATFORM_GPIO_INPUT, PLATFORM_GPIO_FLOAT);
   	interrupts();
   }
 }
@@ -191,8 +189,7 @@ void onewire_write_bytes(uint8_t pin, const uint8_t *buf, uint16_t count, bool p
     onewire_write(pin, buf[i], owDefaultPower);
   if (!power) {
     noInterrupts();
-    DIRECT_MODE_INPUT(pin);
-    DIRECT_WRITE_LOW(pin);
+	platform_gpio_mode(pin, PLATFORM_GPIO_INPUT, PLATFORM_GPIO_FLOAT);
     interrupts();
   }
 }
@@ -239,7 +236,7 @@ void onewire_skip(uint8_t pin)
 void onewire_depower(uint8_t pin)
 {
 	noInterrupts();
-	DIRECT_MODE_INPUT(pin);
+	platform_gpio_mode(pin, PLATFORM_GPIO_INPUT, PLATFORM_GPIO_FLOAT);
 	interrupts();
 }
 
