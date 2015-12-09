@@ -549,6 +549,33 @@ static int node_stripdebug (lua_State *L) {
 }
 #endif
 
+extern struct rst_info reset_info;
+
+static int node_rst_info(lua_State *L) {
+
+  os_printf("reset reason: %x\n", reset_info.reason);
+
+  if (reset_info.reason == REASON_WDT_RST ||
+	reset_info.reason == REASON_EXCEPTION_RST ||
+	reset_info.reason == REASON_SOFT_WDT_RST) {
+	if (reset_info.reason == REASON_EXCEPTION_RST) {
+      os_printf("Fatal exception (%d):\n", reset_info.exccause);
+	}
+    os_printf("epc1=0x%08x, epc2=0x%08x, epc3=0x%08x, excvaddr=0x%08x, depc=0x%08x\n",
+        reset_info.epc1, reset_info.epc2, reset_info.epc3, reset_info.excvaddr, reset_info.depc);
+  }
+
+  lua_pushinteger(L, reset_info.reason);
+  lua_pushinteger(L, reset_info.exccause);
+  lua_pushinteger(L, reset_info.epc1);
+  lua_pushinteger(L, reset_info.epc2);
+  lua_pushinteger(L, reset_info.epc3);
+  lua_pushinteger(L, reset_info.excvaddr);
+  lua_pushinteger(L, reset_info.depc);
+
+  return 7;
+}
+
 // Module function map
 #define MIN_OPT_LEVEL 2
 #include "lrodefs.h"
@@ -575,6 +602,7 @@ const LUA_REG_TYPE node_map[] =
   { LSTRKEY( "setcpufreq" ), LFUNCVAL( node_setcpufreq) },
   { LSTRKEY( "bootreason" ), LFUNCVAL( node_bootreason) },
   { LSTRKEY( "restore" ), LFUNCVAL( node_restore) },
+  { LSTRKEY( "rst_info" ), LFUNCVAL( node_rst_info) },
 #ifdef LUA_OPTIMIZE_DEBUG
   { LSTRKEY( "stripdebug" ), LFUNCVAL( node_stripdebug ) },
 #endif

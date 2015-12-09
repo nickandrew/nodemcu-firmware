@@ -33,6 +33,8 @@
 
 static os_event_t *taskQueue;
 
+struct rst_info reset_info;  // Saves restart reason, exception code etc
+
 /* Important: no_init_data CAN NOT be left as zero initialised, as that
  * initialisation will happen after user_start_trampoline, but before
  * the user_init, thus clobbering our state!
@@ -208,6 +210,8 @@ void nodemcu_init(void)
 *******************************************************************************/
 void user_init(void)
 {
+    struct rst_info *rtc_info = system_get_rst_info();
+    os_memcpy(&reset_info, rtc_info, sizeof(reset_info));
 #ifdef LUA_USE_MODULES_RTCTIME
     rtctime_late_startup ();
 #endif
