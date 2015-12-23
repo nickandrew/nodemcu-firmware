@@ -7,6 +7,10 @@
 #include "c_types.h"
 #include "c_string.h"
 
+#ifdef GPIO_INTERRUPT_ENABLE
+#include "gpiocb.h"
+#endif
+
 #define PULLUP PLATFORM_GPIO_PULLUP
 #define FLOAT PLATFORM_GPIO_FLOAT
 #define OUTPUT PLATFORM_GPIO_OUTPUT
@@ -18,17 +22,49 @@
 
 #ifdef GPIO_INTERRUPT_ENABLE
 static int gpio_cb_ref[GPIO_PIN_NUM];
+
+struct {
+  gpio_cb   func;
+  void *    data;
+} gpio_cb_func[GPIO_PIN_NUM];
+
 static lua_State* gL = NULL;
+
+// Set or change the C callback function to be called on a gpio interrupt.
+// Returns the old value of the pointer.
+
+gpio_cb gpio_set_callback(unsigned pin, gpio_cb f, void *data) {
+  gpio_cb v = gpio_cb_func[pin].func;
+  gpio_cb_func[pin].func = f;
+  gpio_cb_func[pin].data = data;
+  return v;
+}
+
+// Clear the C callback function.
+
+void gpio_clear_callback(unsigned pin) {
+  gpio_cb_func[pin].func = NULL;
+  gpio_cb_func[pin].data = NULL;
+}
 
 void lua_gpio_unref(unsigned pin){
   if(gpio_cb_ref[pin] != LUA_NOREF){
+    gpio_clear_callback(pin);
     if(gL!=NULL)
       luaL_unref(gL, LUA_REGISTRYINDEX, gpio_cb_ref[pin]);
   }
   gpio_cb_ref[pin] = LUA_NOREF;
 }
 
-void gpio_intr_callback( unsigned pin, unsigned level )
+void gpio_intr_callback(unsigned pin, unsigned level)
+{
+  if (gpio_cb_func[pin].func) {
+    gpio_cb_func[pin].func(pin, level, gpio_cb_func[pin].data);
+    return;
+  }
+}
+
+void gpio_lua_callback(unsigned pin, unsigned level, void *data)
 {
   if(gpio_cb_ref[pin] == LUA_NOREF)
     return;
@@ -75,6 +111,8 @@ static int lgpio_trig( lua_State* L )
     if(gpio_cb_ref[pin] != LUA_NOREF)
       luaL_unref(L, LUA_REGISTRYINDEX, gpio_cb_ref[pin]);
     gpio_cb_ref[pin] = luaL_ref(L, LUA_REGISTRYINDEX);
+    // Setup the GPIO callback to call directly into Lua (bad!)
+    gpio_set_callback(pin, gpio_lua_callback, NULL);
   }
 
   platform_gpio_intr_init(pin, type);
@@ -104,6 +142,7 @@ static int lgpio_mode( lua_State* L )
   if (mode!=INTERRUPT){     // disable interrupt
     if(gpio_cb_ref[pin] != LUA_NOREF){
       luaL_unref(L, LUA_REGISTRYINDEX, gpio_cb_ref[pin]);
+      gpio_clear_callback(pin);
     }
     gpio_cb_ref[pin] = LUA_NOREF;
   }
