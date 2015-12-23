@@ -30,7 +30,6 @@ void lua_gpio_unref(unsigned pin){
 
 void gpio_intr_callback( unsigned pin, unsigned level )
 {
-  NODE_DBG("pin:%d, level:%d \n", pin, level);
   if(gpio_cb_ref[pin] == LUA_NOREF)
     return;
   if(!gL)
