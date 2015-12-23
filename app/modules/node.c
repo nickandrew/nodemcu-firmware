@@ -471,6 +471,7 @@ static int node_setcpufreq(lua_State* L)
 // Lua: code = bootreason()
 static int node_bootreason (lua_State *L)
 {
+  platform_gpio_intr_init(3, GPIO_PIN_INTR_NEGEDGE);
   lua_pushnumber (L, rtc_get_reset_reason ());
   return 1;
 }
